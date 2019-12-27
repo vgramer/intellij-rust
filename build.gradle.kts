@@ -455,6 +455,7 @@ project(":intellij-toml") {
         targetDir = "src/gen/org/toml/lang/lexer"
         targetClass = "_TomlLexer"
         purgeOldFiles = true
+        jvmArgs("-Xmx1500m")
     }
 
     val generateTomlParser = task<GenerateParser>("generateTomlParser") {
@@ -463,6 +464,7 @@ project(":intellij-toml") {
         pathToParser = "/org/toml/lang/parse/TomlParser.java"
         pathToPsiRoot = "/org/toml/lang/psi"
         purgeOldFiles = true
+        jvmArgs("-Xmx1500m")
     }
 
     tasks{
