@@ -212,8 +212,11 @@ project(":plugin") {
         }
 
         withType<RunIdeTask> {
+            // We want to make builds on CI faster (for example, buildSearchableOption task)
+            // and at the same time use default memory limit while development
+            val xmx = if (CI) "-Xmx2g" else "-Xmx768m"
             // Default args for IDEA installation
-            jvmArgs("-Xmx768m", "-XX:+UseConcMarkSweepGC", "-XX:SoftRefLRUPolicyMSPerMB=50")
+            jvmArgs(xmx, "-XX:+UseConcMarkSweepGC", "-XX:SoftRefLRUPolicyMSPerMB=50")
             // uncomment if `unexpected exception ProcessCanceledException` prevents you from debugging a running IDE
             // jvmArgs("-Didea.ProcessCanceledException=disabled")
         }
