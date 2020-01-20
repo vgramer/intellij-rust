@@ -120,11 +120,17 @@ fun VirtualFile.toPsiFile(project: Project): PsiFile? =
 fun VirtualFile.toPsiDirectory(project: Project): PsiDirectory? =
     PsiManager.getInstance(project).findDirectory(this)
 
+fun Document.toPsiFile(project: Project): PsiFile? =
+    PsiDocumentManager.getInstance(project).getPsiFile(this)
+
 val Document.virtualFile: VirtualFile?
     get() = FileDocumentManager.getInstance().getFile(this)
 
 val VirtualFile.document: Document?
     get() = FileDocumentManager.getInstance().getDocument(this)
+
+val PsiFile.document: Document?
+    get() = PsiDocumentManager.getInstance(project).getDocument(this)
 
 inline fun <Key, reified Psi : PsiElement> getElements(
     indexKey: StubIndexKey<Key, Psi>,

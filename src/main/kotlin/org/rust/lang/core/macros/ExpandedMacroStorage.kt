@@ -21,7 +21,6 @@ import com.intellij.openapi.vfs.VirtualFileWithId
 import com.intellij.openapi.vfs.newvfs.FileAttribute
 import com.intellij.psi.PsiAnchor
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiManager
 import com.intellij.psi.StubBasedPsiElement
 import com.intellij.psi.impl.source.StubbedSpine
 import com.intellij.util.indexing.FileBasedIndexScanRunnableCollector
@@ -825,7 +824,7 @@ class ExpandedMacroInfoImpl(
     private fun getExpansionPsi(): RsFile? {
         val expansionFile = expansionFile?.takeIf { it.isValid } ?: return null
         testAssert { expansionFile.fileType == RsFileType }
-        return PsiManager.getInstance(sourceFile.project).findFile(expansionFile) as? RsFile
+        return expansionFile.toPsiFile(sourceFile.project) as? RsFile
     }
 
     fun makePipeline(call: RsMacroCall?): Pipeline.Stage1ResolveAndExpand {
