@@ -304,8 +304,8 @@ class CargoTestEventsConverter(
                 .addAttribute("parentNodeId", test.parent)
                 .addAttribute(
                     "locationHint",
-                    // target_name::name1::name2 (line #i) -> target_name::name1::name2
-                    CargoTestLocator.getTestUrl(test.substringBefore(" ("))
+                    // target_name::name1::name2 (line i) -> target_name::name1::name2
+                    CargoTestLocator.getTestUrl(test.replace(" (line ", "#").removeSuffix(")"))
                 )
 
         private fun createTestFailedMessage(test: NodeId, failedMessage: String): ServiceMessageBuilder {

@@ -472,10 +472,10 @@ class CargoTestRunnerTest : CargoTestRunnerTestBase() {
         assertTrue("cargo:test://sandbox-[a-f0-9]{16}::test_mod::test".toRegex().matches(testInner.locationUrl ?: ""))
 
         val doctest1 = root.findTestByName("sandbox (doc-tests)::doctest (line 10)")
-        assertEquals("cargo:test://sandbox-0doctests::doctest", doctest1.locationUrl ?: "")
+        assertEquals("cargo:test://sandbox-0doctests::doctest#10", doctest1.locationUrl ?: "")
 
         val doctest2 = root.findTestByName("sandbox (doc-tests)::doctest (line 13)")
-        assertEquals("cargo:test://sandbox-0doctests::doctest", doctest2.locationUrl ?: "")
+        assertEquals("cargo:test://sandbox-0doctests::doctest#13", doctest2.locationUrl ?: "")
     }
 
     fun `test test duration`() {
