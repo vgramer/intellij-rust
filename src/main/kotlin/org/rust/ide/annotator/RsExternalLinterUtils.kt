@@ -5,8 +5,6 @@
 
 package org.rust.ide.annotator
 
-import com.google.gson.JsonParser
-import com.google.gson.stream.JsonReader
 import com.intellij.CommonBundle
 import com.intellij.execution.ExecutionException
 import com.intellij.lang.annotation.AnnotationHolder
@@ -45,7 +43,7 @@ import org.rust.openapiext.ProjectCache
 import org.rust.openapiext.checkReadAccessAllowed
 import org.rust.openapiext.checkReadAccessNotAllowed
 import org.rust.openapiext.saveAllDocumentsAsTheyAre
-import java.io.StringReader
+import org.rust.stdext.JsonUtil.tryParseJsonObject
 import java.nio.file.Path
 import java.util.*
 
@@ -194,22 +192,14 @@ fun AnnotationHolder.createAnnotationsForFile(file: RsFile, annotationResult: Rs
 }
 
 class RsExternalLinterResult(commandOutput: List<String>) {
-    val messages: List<CargoTopMessage> = commandOutput.asSequence()
+    val messages: List<CargoTopMessage> = commandOutput
         .filter { MESSAGE_REGEX.matches(it) }
-        .map { JsonReader(StringReader(it)).apply { isLenient = true } }
-        .map {
-            // BACKCOMPAT: 2019.3
-            @Suppress("DEPRECATION")
-            PARSER.parse(it)
+        .mapNotNull { line ->
+            val jsonObject = tryParseJsonObject(line) ?: return@mapNotNull null
+            CargoTopMessage.fromJson(jsonObject)
         }
-        .filter { it.isJsonObject }
-        .mapNotNull { CargoTopMessage.fromJson(it.asJsonObject) }
-        .toList()
 
     companion object {
-        // BACKCOMPAT: 2019.3
-        @Suppress("DEPRECATION")
-        private val PARSER = JsonParser()
         private val MESSAGE_REGEX = """\s*\{.*"message".*""".toRegex()
     }
 }
