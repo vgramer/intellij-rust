@@ -31,18 +31,18 @@ class RsBuildEventsConverter(private val context: CargoBuildContext) : BuildOutp
     private val decoder: AnsiEscapeDecoder = AnsiEscapeDecoder()
     private val startEvents: MutableList<StartEvent> = mutableListOf()
     private val messageEvents: MutableSet<MessageEvent> = hashSetOf()
+    private val jsonBuffer: StringBuilder = StringBuilder()
 
     override fun parse(
         line: String,
         reader: BuildOutputInstantReader,
         messageConsumer: Consumer<in BuildEvent>
     ): Boolean {
-        val jsonObject = tryParseJsonObject(line.dropWhile { it != '{' })
-        return if (jsonObject != null) {
-            tryHandleRustcMessage(jsonObject, messageConsumer) || tryHandleRustcArtifact(jsonObject)
-        } else {
-            tryHandleCargoMessage(line, messageConsumer)
-        }
+        if (jsonBuffer.isEmpty() && "{\"reason\"" !in line) return tryHandleCargoMessage(line, messageConsumer)
+        jsonBuffer.append(line.withNewLine())
+        val jsonObject = tryParseJsonObject(jsonBuffer.dropWhile { it != '{' }) ?: return false
+        jsonBuffer.clear()
+        return tryHandleRustcMessage(jsonObject, messageConsumer) || tryHandleRustcArtifact(jsonObject)
     }
 
     private fun tryHandleRustcMessage(jsonObject: JsonObject, messageConsumer: Consumer<in BuildEvent>): Boolean {

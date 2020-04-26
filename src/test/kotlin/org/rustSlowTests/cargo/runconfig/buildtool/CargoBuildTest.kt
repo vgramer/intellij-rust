@@ -84,8 +84,21 @@ abstract class CargoBuildTest : RunConfigurationTestBase() {
                 // Eliminate consecutive duplicates
                 .fold(emptyList<String>()) { result, value ->
                     if (result.isNotEmpty() && result.last() == value) result else result + value
+                }.toList()
+
+            if (expectedTexts.size != actualTexts.size) {
+                assertEquals(expectedTexts, actualTexts)
+            }
+
+            for ((expected, actual) in expectedTexts.zip(actualTexts)) {
+                if (expected.startsWith("Building...") && actual.startsWith("Building...")) {
+                    val expectedSet = expected.substringAfter("Building... ").split(", ").toSet()
+                    val actualSet = actual.substringAfter("Building... ").split(", ").toSet()
+                    assertEquals(expectedSet, actualSet)
+                } else {
+                    assertEquals(expected, actual)
                 }
-            assertEquals(expectedTexts.toList(), actualTexts)
+            }
         }
 
         protected abstract class MyBuildEvent(
