@@ -23,20 +23,22 @@ import org.intellij.markdown.html.SimpleTagProvider
 import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 import org.rust.cargo.util.AutoInjectedCrates.STD
-import org.rust.lang.core.parser.RustParserDefinition.Companion.INNER_BLOCK_DOC_COMMENT
-import org.rust.lang.core.parser.RustParserDefinition.Companion.INNER_EOL_DOC_COMMENT
-import org.rust.lang.core.parser.RustParserDefinition.Companion.OUTER_BLOCK_DOC_COMMENT
-import org.rust.lang.core.parser.RustParserDefinition.Companion.OUTER_EOL_DOC_COMMENT
 import org.rust.lang.core.psi.*
 import org.rust.lang.core.psi.ext.*
 import org.rust.lang.core.types.ty.TyPrimitive
 import org.rust.lang.doc.psi.RsDocKind
 import java.net.URI
 
-fun RsDocAndAttributeOwner.documentation(): String? =
-    (outerDocs() + innerDocs())
-        .map { it.first to it.second.splitToSequence("\r\n", "\r", "\n") }
-        .flatMap { it.first.removeDecoration(it.second) }
+fun RsDocAndAttributeOwner.documentation(): String =
+    docElements()
+        .mapNotNull {
+            when (it) {
+                is RsAttr -> it.docAttr?.let { text -> RsDocKind.Attr to text }
+                is RsDocCommentImpl -> RsDocKind.of(it.tokenType) to it.text
+                else -> null
+            }
+        }
+        .flatMap { (kind, text) -> kind.removeDecoration(text.lineSequence()) }
         .joinToString("\n")
 
 fun RsDocAndAttributeOwner.documentationAsHtml(originalElement: RsElement = this): String? {
@@ -62,49 +64,38 @@ fun RsDocAndAttributeOwner.documentationAsHtml(originalElement: RsElement = this
         }
     } else null
 
-    val text = documentation() ?: return null
+    val text = documentation()
     val flavour = RustDocMarkdownFlavourDescriptor(this, baseURI)
     val root = MarkdownParser(flavour).buildMarkdownTreeFromString(text)
     return HtmlGenerator(text, root, flavour).generateHtml()
         .replace(tmpUriPrefix, DocumentationManagerProtocol.PSI_ELEMENT_PROTOCOL)
 }
 
-private fun RsDocAndAttributeOwner.outerDocs(): Sequence<Pair<RsDocKind, String>> {
+/**
+ * Returns elements contribute to documentation of the element
+ */
+fun RsDocAndAttributeOwner.docElements(): Sequence<PsiElement> {
     // rustdoc appends the contents of each doc comment and doc attribute in order
     // so we have to resolve these attributes that are edge-bound at the top of the
     // children list.
-    return childrenWithLeaves
+    val outerDocs = childrenWithLeaves
         // All these outer elements have been edge bound; if we reach something that isn't one
         // of these, we have reached the actual parse children of this item.
         .takeWhile { it is RsOuterAttr || it is PsiComment || it is PsiWhiteSpace }
-        .mapNotNull {
-            when {
-                it is RsOuterAttr -> it.metaItem.docAttr?.let { RsDocKind.Attr to it }
-                it is PsiComment && (it.tokenType == OUTER_EOL_DOC_COMMENT
-                    || it.tokenType == OUTER_BLOCK_DOC_COMMENT) -> RsDocKind.of(it.tokenType) to it.text
-                else -> null
-            }
-        }
-}
-
-private fun RsDocAndAttributeOwner.innerDocs(): Sequence<Pair<RsDocKind, String>> {
+        .filter { it is RsOuterAttr && it.isDocAttr || it is RsDocCommentImpl && it.tokenType in RS_OUTER_DOC_COMMENTS }
     // Next, we have to consider inner comments and meta. These, like the outer case, are appended in
     // lexical order, after the outer elements. This only applies to functions and modules.
     val childBlock = childOfType<RsBlock>() ?: this
-
-    return childBlock.childrenWithLeaves
-        .mapNotNull {
-            when {
-                it is RsInnerAttr -> it.metaItem.docAttr?.let { RsDocKind.Attr to it }
-                it is PsiComment && (it.tokenType == INNER_EOL_DOC_COMMENT
-                    || it.tokenType == INNER_BLOCK_DOC_COMMENT) -> RsDocKind.of(it.tokenType) to it.text
-                else -> null
-            }
-        }
+    val innerDocs = childBlock.childrenWithLeaves
+        .filter { it is RsInnerAttr && it.isDocAttr || it is RsDocCommentImpl && it.tokenType in RS_INNER_DOC_COMMENTS }
+    return outerDocs + innerDocs
 }
 
-private val RsMetaItem.docAttr: String?
-    get() = if (name == "doc") litExpr?.stringValue else null
+private val RsAttr.isDocAttr: Boolean
+    get() = metaItem.name == "doc"
+
+private val RsAttr.docAttr: String?
+    get() = if (isDocAttr) metaItem.litExpr?.stringValue else null
 
 private class RustDocMarkdownFlavourDescriptor(
     private val context: PsiElement,

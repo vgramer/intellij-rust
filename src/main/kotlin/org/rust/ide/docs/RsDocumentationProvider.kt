@@ -25,7 +25,7 @@ import org.rust.lang.doc.documentationAsHtml
 import org.rust.openapiext.escaped
 import org.rust.stdext.joinToWithBuffer
 
-class RsDocumentationProvider : AbstractDocumentationProvider() {
+abstract class RsDocumentationProviderBase : AbstractDocumentationProvider() {
 
     override fun generateDoc(element: PsiElement, originalElement: PsiElement?): String? {
         val buffer = StringBuilder()
