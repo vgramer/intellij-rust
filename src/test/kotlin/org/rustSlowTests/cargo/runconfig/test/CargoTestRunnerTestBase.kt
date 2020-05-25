@@ -20,7 +20,7 @@ abstract class CargoTestRunnerTestBase : RunConfigurationTestBase() {
         val result = execute(configuration)
         val executionConsole = result.executionConsole as SMTRunnerConsoleView
         val testsRootNode = executionConsole.resultsViewer.testsRootNode
-        with(result.processHandler) {
+        with(result.processHandler!!) {
             startNotify()
             waitFor()
         }

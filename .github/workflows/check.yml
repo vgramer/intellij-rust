@@ -55,6 +55,12 @@ jobs:
                   command: install
                   args: evcxr_repl
 
+            - name: Install grcov
+              uses: actions-rs/cargo@v1
+              with:
+                  command: install
+                  args: grcov
+
             - name: Check environment
               run: |
                   rustc --version

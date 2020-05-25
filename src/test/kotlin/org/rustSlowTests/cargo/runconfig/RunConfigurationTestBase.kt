@@ -5,14 +5,11 @@
 
 package org.rustSlowTests.cargo.runconfig
 
-import com.intellij.execution.ExecutionResult
-import com.intellij.execution.ExecutorRegistry
-import com.intellij.execution.Location
-import com.intellij.execution.RunnerAndConfigurationSettings
-import com.intellij.execution.RunManager
+import com.intellij.execution.*
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.RunConfigurationProducer
 import com.intellij.execution.configurations.RunConfiguration
+import com.intellij.execution.configurations.RunnerSettings
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.impl.RunManagerImpl
 import com.intellij.execution.impl.RunnerAndConfigurationSettingsImpl
@@ -20,6 +17,8 @@ import com.intellij.execution.process.*
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder
 import com.intellij.execution.runners.ProgramRunner
+import com.intellij.execution.runners.executeState
+import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.ide.DataManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
@@ -33,8 +32,13 @@ import org.rust.cargo.runconfig.command.CargoCommandConfiguration
 import org.rust.cargo.runconfig.command.CargoCommandConfigurationType
 import org.rust.cargo.runconfig.command.CargoExecutableRunConfigurationProducer
 import org.rust.cargo.runconfig.test.CargoTestRunConfigurationProducer
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 abstract class RunConfigurationTestBase : RsWithToolchainTestBase() {
+    protected open val executor: Executor
+        get() = DefaultRunExecutor.getRunExecutorInstance()
+
     protected fun createConfiguration(): CargoCommandConfiguration {
         val configurationType = CargoCommandConfigurationType.getInstance()
         val factory = configurationType.factory
@@ -71,19 +75,23 @@ abstract class RunConfigurationTestBase : RsWithToolchainTestBase() {
             ?: error("Can't create run configuration settings")
     }
 
-    protected fun execute(configuration: RunConfiguration): ExecutionResult {
-        val executor = DefaultRunExecutor.getRunExecutorInstance()
-        val state = ExecutionEnvironmentBuilder
+    protected fun execute(
+        configuration: RunConfiguration,
+        runnerSettings: RunnerSettings? = null
+    ): RunContentDescriptor {
+        val future = CompletableFuture<RunContentDescriptor>()
+        val environment = ExecutionEnvironmentBuilder
             .create(executor, configuration)
-            .build()
-            .state!!
-        return state.execute(executor, CargoCommandRunner())!!
+            .runnerSettings(runnerSettings)
+            .build(ProgramRunner.Callback { future.complete(it) })
+        environment.runner.execute(environment)
+        return future.get(10, TimeUnit.SECONDS)!!
     }
 
     protected fun executeAndGetOutput(configuration: RunConfiguration): ProcessOutput {
         val result = execute(configuration)
         val listener = AnsiAwareCapturingProcessAdapter()
-        with(result.processHandler) {
+        with(result.processHandler!!) {
             addProcessListener(listener)
             startNotify()
             waitFor()
