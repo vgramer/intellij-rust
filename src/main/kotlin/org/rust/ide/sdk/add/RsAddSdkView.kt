@@ -5,6 +5,7 @@
 
 package org.rust.ide.sdk.add
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.ui.ValidationInfo
 import org.jetbrains.annotations.Nls
@@ -15,7 +16,7 @@ import javax.swing.Icon
  * Represents the view for adding new Python SDK. It is used in
  * [RsAddSdkDialog].
  */
-interface RsAddSdkView {
+interface RsAddSdkView: Disposable {
     val panelName: String
         @Nls(capitalization = Nls.Capitalization.Title) get
 
@@ -81,4 +82,6 @@ interface RsAddSdkView {
     fun validateAll(): List<ValidationInfo>
 
     fun addStateListener(stateListener: RsAddSdkStateListener)
+
+    override fun dispose() {}
 }

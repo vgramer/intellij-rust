@@ -136,4 +136,5 @@ val Project.rustSettings: RustProjectSettingsService
     get() = ServiceManager.getService(this, RustProjectSettingsService::class.java)
         ?: error("Failed to get RustProjectSettingsService for $this")
 
+// TODO
 val Project.toolchain: RustToolchain? get() = rustSettings.toolchain

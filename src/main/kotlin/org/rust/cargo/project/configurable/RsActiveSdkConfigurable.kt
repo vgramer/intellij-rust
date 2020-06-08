@@ -32,11 +32,11 @@ import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
 
-class RsActiveSdkConfigurable private constructor(
+open class RsActiveSdkConfigurable private constructor(
     private val project: Project,
     private val module: Module?
 ) : UnnamedConfigurable {
-    private val sdkCombo: ComboBox<Any> = buildSdkComboBox(::onShowAllSelected, ::onSdkSelected)
+    private val sdkComboBox: ComboBox<Any> = buildSdkComboBox(::onShowAllSelected, ::onSdkSelected)
     private val toolchainList: RsConfigurableToolchainList = RsConfigurableToolchainList.getInstance(project)
     private val projectSdksModel: ProjectSdksModel = toolchainList.model
     private val mainPanel: JPanel
@@ -47,9 +47,9 @@ class RsActiveSdkConfigurable private constructor(
         get() = editableSelectedSdk?.let { projectSdksModel.findSdk(it) }
 
     private val editableSelectedSdk: Sdk?
-        get() = sdkCombo.selectedItem as Sdk
+        get() = sdkComboBox.selectedItem as Sdk
 
-    private var sdk: Sdk?
+    protected open var sdk: Sdk?
         get() {
             if (module == null) return ProjectRootManager.getInstance(project).projectSdk
             val rootManager = ModuleRootManager.getInstance(module)
@@ -63,9 +63,9 @@ class RsActiveSdkConfigurable private constructor(
         }
 
     init {
-        val detailsButton = buildDetailsButton(sdkCombo, ::onShowDetailsClicked)
+        val detailsButton = buildDetailsButton(sdkComboBox, ::onShowDetailsClicked)
         val customizer = buildCustomizer()
-        mainPanel = buildPanel(project, sdkCombo, detailsButton, customizer)
+        mainPanel = buildPanel(project, sdkComboBox, detailsButton, customizer)
         disposable = customizer?.second
     }
 
@@ -169,9 +169,9 @@ class RsActiveSdkConfigurable private constructor(
         items.add(RsSdkListCellRenderer.SEPARATOR)
         items.add(SHOW_ALL)
 
-        sdkCombo.renderer = RsSdkListCellRenderer(null)
+        sdkComboBox.renderer = RsSdkListCellRenderer(null)
         val selection = selectedSdk?.let { projectSdksModel.findSdk(it.name) }
-        sdkCombo.model = CollectionComboBoxModel(items, selection)
+        sdkComboBox.model = CollectionComboBoxModel(items, selection)
         onSdkSelected()
     }
 
